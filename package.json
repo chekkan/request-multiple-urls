@@ -1,0 +1,14 @@
+{
+  "name": "request-multiple-urls",
+  "version": "1.0.0",
+  "description": "fetch an array of URLs which contain JSON data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^25.1.0"
+  }
+}
