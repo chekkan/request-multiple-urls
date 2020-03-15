@@ -4,6 +4,16 @@ const {EventEmitter} = require("events");
 
 describe("requestMultipleUrls", () => {
 
+    beforeEach(() => {
+        https.get = jest.fn().mockImplementation((uri, callback) => {
+            const httpIncomingMessage = new EventEmitter();
+            callback(httpIncomingMessage);
+            httpIncomingMessage.emit("data", "{}");
+            httpIncomingMessage.emit("end");
+            return new EventEmitter();
+        })
+    });
+
     test('with undefined returns promise with empty array', async () => {
         const result = await requestMultipleUrls();
         expect(result).toEqual([]);
@@ -37,6 +47,24 @@ describe("requestMultipleUrls", () => {
 
         const result = await requestMultipleUrls(urls);
         expect(result).toEqual(responseBodies.map(body => ({response: body})));
+    });
+
+    test.each([["foo", 1, "example.com"], ["bar", "baz", "https://ft.com"]])
+    ("at least 1 invalid url in %s throws", async (...urls) => {
+        const invalids = urls.map((u) => {
+            try {
+                new URL(u);
+            } catch (err) {
+                return u
+            }
+        }).filter(e => e);
+        var msg = `Invalid URLs: ${invalids.join(", ")}`;
+        expect.assertions(1);
+        try {
+            await requestMultipleUrls(urls);
+        } catch (err) {
+            expect(err).toEqual(new TypeError(msg))
+        }
     })
 
 });
