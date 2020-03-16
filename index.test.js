@@ -1,5 +1,6 @@
 const requestMultipleUrls = require(".");
 const https = require("https");
+const http = require("http");
 const {EventEmitter} = require("events");
 
 describe("requestMultipleUrls", () => {
@@ -7,6 +8,17 @@ describe("requestMultipleUrls", () => {
     beforeEach(() => {
         https.get = jest.fn().mockImplementation((uri, callback) => {
             const httpIncomingMessage = new EventEmitter();
+            httpIncomingMessage.statusCode = 200;
+            httpIncomingMessage.headers = {'content-type': "application/json"};
+            callback(httpIncomingMessage);
+            httpIncomingMessage.emit("data", "{}");
+            httpIncomingMessage.emit("end");
+            return new EventEmitter();
+        });
+        http.get = jest.fn().mockImplementation((uri, callback) => {
+            const httpIncomingMessage = new EventEmitter();
+            httpIncomingMessage.statusCode = 200;
+            httpIncomingMessage.headers = {'content-type': "application/json"};
             callback(httpIncomingMessage);
             httpIncomingMessage.emit("data", "{}");
             httpIncomingMessage.emit("end");
@@ -19,18 +31,20 @@ describe("requestMultipleUrls", () => {
         expect(result).toEqual([]);
     });
 
-    test.each([["https://foo.bar/baz.json", {foo: "bar"}], ["https://google.com", {baz: "corge"}]])('with url %s returns content', async (url, response) => {
+    test.each([["https://foo.bar/baz.json", {foo: "bar"}], ["https://google.com", {baz: "corge"}]])
+    ('with url %s returns content', async (url, json) => {
         const urls = [url];
         https.get = jest.fn().mockImplementation((uri, callback) => {
             const httpIncomingMessage = new EventEmitter();
+            httpIncomingMessage.headers = {'content-type': "application/json"};
             callback(httpIncomingMessage);
-            httpIncomingMessage.emit("data", JSON.stringify(response));
+            httpIncomingMessage.emit("data", JSON.stringify(json));
             httpIncomingMessage.emit("end");
             return new EventEmitter();
         });
 
         const result = await requestMultipleUrls(urls);
-        expect(result).toEqual([{response}]);
+        expect(result).toEqual([{contentType: "application/json", json}]);
     });
 
     test("multiple urls with successful response", async () => {
@@ -39,6 +53,7 @@ describe("requestMultipleUrls", () => {
         let i = 0;
         https.get = jest.fn().mockImplementation((uri, callback) => {
             const httpIncomingMessage = new EventEmitter();
+            httpIncomingMessage.headers = {'content-type': "application/json"};
             callback(httpIncomingMessage);
             httpIncomingMessage.emit("data", JSON.stringify(responseBodies[i++]));
             httpIncomingMessage.emit("end");
@@ -46,7 +61,8 @@ describe("requestMultipleUrls", () => {
         });
 
         const result = await requestMultipleUrls(urls);
-        expect(result).toEqual(responseBodies.map(body => ({response: body})));
+        let expected = responseBodies.map(body => ({contentType: "application/json", json: body}));
+        expect(result).toEqual(expected);
     });
 
     test.each([["foo", 1, "example.com"], ["bar", "baz", "https://ft.com"]])
@@ -65,6 +81,30 @@ describe("requestMultipleUrls", () => {
         } catch (err) {
             expect(err).toEqual(new TypeError(msg))
         }
-    })
+    });
 
+    test("handles non json response", async () => {
+        const urls = ["https://google.com"];
+        const contentType = "text/html; charset=UTF-8";
+        https.get = jest.fn().mockImplementation((uri, callback) => {
+            const httpIncomingMessage = new EventEmitter();
+            httpIncomingMessage.statusCode = 200;
+            httpIncomingMessage.headers = {'content-type': contentType};
+            callback(httpIncomingMessage);
+            httpIncomingMessage.emit("data", "<html><body><h1>Hello World!</h1></body></html>");
+            httpIncomingMessage.emit("end");
+            return new EventEmitter();
+        });
+
+        const result = await requestMultipleUrls(urls);
+        expect(result[0].contentType).toEqual(contentType);
+        expect(result[0].statusCode).toEqual(200);
+        expect(result[0].json).toBeUndefined();
+    });
+
+    test("handle http urls", async () => {
+        const urls = ["http://google.com/foo.json"];
+        const result = await requestMultipleUrls(urls);
+        expect(http.get).toBeCalledWith(new URL(urls[0]), expect.anything());
+    });
 });

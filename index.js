@@ -1,4 +1,9 @@
 const https = require('https');
+const http = require('http');
+const request = {
+    https,
+    http
+};
 
 const requestMultipleUrls = (urls = []) => {
 
@@ -17,25 +22,32 @@ const requestMultipleUrls = (urls = []) => {
         throw new TypeError(msg);
     }
 
-    var promises = urls.map((uri) => new Promise((res, rej) => {
+    var promises = urls.map((uri) => new Promise((resolve, reject) => {
         const url = new URL(uri);
-        https.get(url, (resp) => {
+        request[url.protocol.slice(0, -1)].get(url, (res) => {
             let data = '';
 
             // A chunk of data has been received.
-            resp.on('data', (chunk) => {
+            res.on('data', (chunk) => {
                 data += chunk;
             });
 
             // The whole response has been received..
-            resp.on('end', () => {
+            res.on('end', () => {
 
-                let response = JSON.parse(data);
-                res({response: response});
+                let contentType = res.headers["content-type"];
+                const json = (contentType === "application/json")
+                    ? JSON.parse(data)
+                    : undefined;
+                resolve({
+                    contentType,
+                    statusCode: res.statusCode,
+                    json
+                });
             });
 
         }).on("error", (err) => {
-            rej(err);
+            reject(err);
         });
     })).map(p => p.catch(e => e));
 
