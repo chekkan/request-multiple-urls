@@ -6,7 +6,9 @@ const request = {
 };
 
 const requestMultipleUrls = (urls = []) => {
-
+    if (!Array.isArray(urls)) {
+        throw new TypeError("expected urls to be an Array");
+    }
     // handle invalid url inputs
     const invalids = urls.map((u) => {
         try {

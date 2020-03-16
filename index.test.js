@@ -100,4 +100,14 @@ describe("requestMultipleUrls", () => {
         await requestMultipleUrls(urls);
         expect(http.get).toBeCalledWith(new URL(urls[0]), expect.anything());
     });
+
+    test("param not an array", async () => {
+        const urls = "https://localhost:8080";
+        expect.assertions(1);
+        try {
+            await requestMultipleUrls(urls);
+        } catch(err) {
+            expect(err).toEqual(new TypeError("expected urls to be an Array"))
+        }
+    })
 });
