@@ -18,11 +18,11 @@ const requestMultipleUrls = (urls = []) => {
 
     if (invalids.length > 0) {
         // throw if any urls are invalid
-        var msg = `Invalid URLs: ${invalids.join(", ")}`;
+        const msg = `Invalid URLs: ${invalids.join(", ")}`;
         throw new TypeError(msg);
     }
 
-    var promises = urls.map((uri) => new Promise((resolve, reject) => {
+    const promises = urls.map((uri) => new Promise((resolve, reject) => {
         const url = new URL(uri);
         request[url.protocol.slice(0, -1)].get(url, (res) => {
             let data = '';

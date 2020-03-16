@@ -6,7 +6,7 @@ const {EventEmitter} = require("events");
 describe("requestMultipleUrls", () => {
 
     beforeEach(() => {
-        https.get = jest.fn().mockImplementation((uri, callback) => {
+        const defaultHandler = (uri, callback) => {
             const httpIncomingMessage = new EventEmitter();
             httpIncomingMessage.statusCode = 200;
             httpIncomingMessage.headers = {'content-type': "application/json"};
@@ -14,16 +14,9 @@ describe("requestMultipleUrls", () => {
             httpIncomingMessage.emit("data", "{}");
             httpIncomingMessage.emit("end");
             return new EventEmitter();
-        });
-        http.get = jest.fn().mockImplementation((uri, callback) => {
-            const httpIncomingMessage = new EventEmitter();
-            httpIncomingMessage.statusCode = 200;
-            httpIncomingMessage.headers = {'content-type': "application/json"};
-            callback(httpIncomingMessage);
-            httpIncomingMessage.emit("data", "{}");
-            httpIncomingMessage.emit("end");
-            return new EventEmitter();
-        })
+        };
+        https.get = jest.fn().mockImplementation(defaultHandler);
+        http.get = jest.fn().mockImplementation(defaultHandler);
     });
 
     test('with undefined returns promise with empty array', async () => {
@@ -74,7 +67,7 @@ describe("requestMultipleUrls", () => {
                 return u
             }
         }).filter(e => e);
-        var msg = `Invalid URLs: ${invalids.join(", ")}`;
+        const msg = `Invalid URLs: ${invalids.join(", ")}`;
         expect.assertions(1);
         try {
             await requestMultipleUrls(urls);
@@ -91,7 +84,7 @@ describe("requestMultipleUrls", () => {
             httpIncomingMessage.statusCode = 200;
             httpIncomingMessage.headers = {'content-type': contentType};
             callback(httpIncomingMessage);
-            httpIncomingMessage.emit("data", "<html><body><h1>Hello World!</h1></body></html>");
+            httpIncomingMessage.emit("data", "<html lang=\"en\"><body><h1>Hello World!</h1></body></html>");
             httpIncomingMessage.emit("end");
             return new EventEmitter();
         });
@@ -104,7 +97,7 @@ describe("requestMultipleUrls", () => {
 
     test("handle http urls", async () => {
         const urls = ["http://google.com/foo.json"];
-        const result = await requestMultipleUrls(urls);
+        await requestMultipleUrls(urls);
         expect(http.get).toBeCalledWith(new URL(urls[0]), expect.anything());
     });
 });
