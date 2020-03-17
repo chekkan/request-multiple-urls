@@ -1,5 +1,10 @@
 # request-multiple-urls
 
+No dependency - simple multiple get request nodejs library
+
+Node versions 
+- ✅ `10.16.x`
+
 ## Getting Started
 
 ```javascript
